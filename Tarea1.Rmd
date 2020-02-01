@@ -1,0 +1,134 @@
+---
+title: "Tarea1"
+author: "Hugo Delgado"
+date: "31/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r librerias, include=FALSE}
+library(tidyverse)
+```
+
+
+7. Comparar computacionalmente la cobertura y longitud de 
+$$ \hat{p}_{n} \pm z_{\alpha/2} \sqrt{\frac{\hat{p}_n (1-\hat{p}_n)}{n}}  $$
+donde $X_1,\dots,X_n \sim$ iid **Bernoulli**$(p)$ y  $\hat{p}_n = \bar{x}$.
+Tomar $p=0.2$ y usar $\alpha = 0.05$. Tratar con varios tamaños de $n$. ¿Qué tan grande debe ser $n$ para que el intervalo tenga cobertura adecuada?
+
+
+
+
+```{r}
+set.seed(31012020)
+p <- 0.2
+Alpha <- 0.05
+n <- c(10, 100, 1000, 10000, 100000)
+limInf <- rep(0, length(n))
+limSup <- rep(0, length(n))
+p_gorro <- rep(0, length(n))
+
+for (i in 1:length(n)) {
+  X <- rbinom(n[i], 1, p)
+  p_gorro[i] <- mean(X)
+  limInf[i] <- p_gorro[i] - qnorm(Alpha/2, lower.tail = FALSE) * sqrt((p_gorro[i] * (1 - p_gorro[i])) / n[i])
+  limSup[i] <- p_gorro[i] - qnorm(Alpha/2, lower.tail = TRUE) * sqrt((p_gorro[i] * (1 - p_gorro[i])) / n[i])
+}
+
+intervalos <- tibble(n, limInf, p_gorro, limSup)
+
+intervalos %>% 
+  knitr::kable()
+```
+
+
+8. Con los datos de Old Faithful, estimen el tiempo medio de espera y den un error estándar para el estimador. Obtengan un intervalo de confianza del $90 \%$ para el tiempo medio de espera.
+Ahora estimen la mediana del tiempo de espera. ¿Cuál es el error estándar de la mediana?
+
+```{r}
+oldFaithful <- faithful
+
+mediaTiempo <- mean(oldFaithful$waiting)
+varTiempo <- 0
+
+for (i in 1:nrow(oldFaithful)) {
+  varTiempo <- varTiempo + (oldFaithful$waiting[i] - mediaTiempo)^2
+}
+varTiempo <- varTiempo / (nrow(oldFaithful) - 1)
+eeTiempo <- sqrt(varTiempo)
+
+lb <- mediaTiempo - qt(0.1/2, 271, lower.tail = FALSE) * eeTiempo / sqrt(nrow(oldFaithful))
+ub <-  mediaTiempo - qt(0.1/2, 271, lower.tail = TRUE) * eeTiempo / sqrt(nrow(oldFaithful))
+
+tabla <- tibble(mediaTiempo, eeTiempo, lb, ub)
+
+#t.test(oldFaithful$waiting, conf.level = 0.9)
+
+tabla %>% 
+  knitr::kable()
+
+```
+
+
+
+
+9. Con los datos de magnitudes de terremotos cerca de Fiji, estimen $F(x)$. Computen y grafiquen una envoltura del $95 \%$ para $F$. Encuentren un intervalo de confianza aproximado del $95 \%$ para $F(4.9) - F(4.3)$.
+
+
+
+```{r}
+fiji <- quakes
+numObs <- nrow(fiji)
+eps <- sqrt(1/(2*numObs) * log(2/Alpha))
+magnitudes <- sort(fiji$mag)
+dis <- ecdf(magnitudes)
+```
+
+
+```{r}
+plot(magnitudes, dis(magnitudes), type = "S")
+abline(h = 1, lty = 2, col = "gray", lwd = 2)
+rug(magnitudes, ticksize=0.02, col = "blue")
+lines(magnitudes, pmax(dis(magnitudes) - eps, 0), col = "green", type = "S")
+lines(magnitudes, pmin(dis(magnitudes) + eps, 1), col = "red", type = "S")
+```
+
+
+<!-- ```{r} -->
+<!-- ggplot(mapping = aes(x = magnitudes, y = dis(magnitudes))) +  -->
+<!--   stat_ecdf(geom = "step") -->
+<!-- ``` -->
+
+
+```{r}
+cotaInf <- dis(4.9) - dis(4.3) - 2 * eps
+cotaSup <- dis(4.9) - dis(4.3) + 2 * eps
+```
+
+
+
+10. Este es otro ejercicio computacional.
+    a) Generar 100 observacione independientes de una normal estandar. Calcular una banda de donfianza para F. Repetir 1000 veces y ver qué proporción la banda de confianza contiene a la verdadera función de distribución.
+    b) Repetir el ejercicio anterior usando una distribución Cauchy estandar.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
